@@ -3,6 +3,7 @@
   "compilerOptions": {
     "composite": true,
     "outDir": "./dist/app",
+    "types": ["node"],
     "noEmit": false,  // Explicitly set to false
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo"
   }
