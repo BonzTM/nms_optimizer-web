@@ -1,0 +1,91 @@
+name: Build Image and Push
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+# Sets permissions of the GITHUB_TOKEN
+permissions:
+  packages: write
+  contents: read
+
+env:
+  GHCR_REPO: ghcr.io/${{ github.repository_owner }}/nms-optimizer-web
+  DOCKERHUB_REPO: bonztm/nms-optimizer-web
+
+jobs:
+  build-push-image:
+    runs-on: 
+      - nms-optimizer
+
+    steps:
+      - name: checkout repo content
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Jest tests in CI mode
+        run: npm run test:ci  # Use the test:ci script
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Create docker context
+        run: |
+          docker context create nms-optimizer-web
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          endpoint: nms-optimizer-web
+
+      - name: Generate docker image tags
+        id: metadata
+        uses: docker/metadata-action@v5
+        with:
+          flavor: |
+            latest=true
+          images: |
+            ${{ env.GHCR_REPO }}
+            ${{ env.DOCKERHUB_REPO }}
+          tags: |
+            type=ref,event=pr
+            type=ref,event=branch
+            type=sha,enable=true,priority=100,prefix=sha-,suffix=,format=short
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+
+      - name: Remove docker context
+        if: always()
+        run: docker context rm nms-optimizer-web
+
+      - name: Update Dockerhub Description
+        uses: peter-evans/dockerhub-description@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ env.DOCKERHUB_REPO }}
+          readme-filepath: README.md
+          short-description: ${{ github.event.repository.description }}
