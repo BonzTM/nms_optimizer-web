@@ -2,7 +2,7 @@
 import { CounterClockwiseClockIcon, QuestionMarkCircledIcon, ResetIcon, Share1Icon } from "@radix-ui/react-icons";
 import { Button } from "@radix-ui/themes";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ApiResponse, Grid } from "../../store/useGridStore";
+import { ApiResponse, Grid } from "../../store/GridStore";
 import GridCell from "../GridCell/GridCell";
 import GridControlButtons from "../GridControlButtons/GridControlButtons";
 import ShakingWrapper from "../GridShake/GridShake";
@@ -16,6 +16,7 @@ interface GridTableProps {
   activateRow: (rowIndex: number) => void;
   deActivateRow: (rowIndex: number) => void;
   solving: boolean;
+  shared: boolean;
   setShowChangeLog: React.Dispatch<React.SetStateAction<boolean>>;
   setShowInstructions: React.Dispatch<React.SetStateAction<boolean>>;
 }
@@ -37,6 +38,12 @@ const GridTable: React.FC<GridTableProps> = ({ grid, activateRow, deActivateRow,
   const gridRef = useRef<HTMLDivElement>(null);
   const [columnWidth, setColumnWidth] = useState("40px");
   const { serializeGrid, deserializeGrid } = useGridDeserializer();
+  const [isSharedGrid, setIsSharedGrid] = useState(false);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    setIsSharedGrid(url.searchParams.has("grid"));
+  }, [resetGrid]);
 
   const handleShareClick = useCallback(() => {
     const serializedGrid = serializeGrid();
@@ -56,6 +63,7 @@ const GridTable: React.FC<GridTableProps> = ({ grid, activateRow, deActivateRow,
     const url = new URL(window.location.href);
     url.searchParams.delete("grid"); // Remove the 'grid' query parameter
     window.history.pushState({}, "", url); // Update the URL without reloading
+    setIsSharedGrid(false);
   }, [resetGrid]);
 
   useEffect(() => {
@@ -97,10 +105,13 @@ const GridTable: React.FC<GridTableProps> = ({ grid, activateRow, deActivateRow,
                     label: cell.label,
                     supercharged: cell.supercharged,
                     active: cell.active,
+                    tech: cell.tech ?? "",
+                    adjacency_bonus: cell.adjacency_bonus,
                     image: cell.image || undefined,
                   }}
                   grid={grid}
                   setShaking={setShaking}
+                  isSharedGrid={isSharedGrid}
                 />
               ))}
               <GridControlButtons
@@ -133,10 +144,17 @@ const GridTable: React.FC<GridTableProps> = ({ grid, activateRow, deActivateRow,
             <CounterClockwiseClockIcon />
             <span className="hidden sm:inline">Change Log</span>
           </Button>
-          <Button variant="soft" className={`gridTable__button gridTable__button--changelog shadow-lg sm:!px-2`} onClick={handleShareClick}>
-            <Share1Icon />
-            <span className="hidden sm:inline">Share Link</span>
-          </Button>
+          {!isSharedGrid && (
+            <Button
+              variant="soft"
+              className={`gridTable__button gridTable__button--changelog shadow-lg sm:!px-2`}
+              onClick={handleShareClick}
+              disabled={isSharedGrid}
+            >
+              <Share1Icon />
+              <span className="hidden sm:inline">Share Link</span>
+            </Button>
+          )}
         </div>
         <div className="z-10 gridTable__footer__right" style={{ paddingRight: columnWidth }}>
           <Button className={`gridTable__button gridTable__button--reset shadow-lg`} variant="solid" onClick={handleResetGrid} disabled={solving}>

@@ -1,9 +1,9 @@
 // src/hooks/useOptimize.tsx
 import { useState, useCallback, useEffect, useRef } from "react";
-import { useGridStore, Grid, ApiResponse } from "../store/useGridStore";
-import { useOptimizeStore } from "../store/useOptimize";
+import { useGridStore, Grid, ApiResponse } from "../store/GridStore";
+import { useOptimizeStore } from "../store/OptimizeStore";
 import { API_URL } from "../constants";
-import { useTechStore } from "../store/useTechStore";
+import { useTechStore } from "../store/TechStore";
 import { useShipTypesStore } from "./useShipTypes"; // Import useShipTypesStore
 
 interface UseOptimizeReturn {
@@ -53,7 +53,7 @@ export const useOptimize = (): UseOptimizeReturn => {
                     label: "",
                     type: "",
                     bonus: 0.0,
-                    adjacency_bonus: 0.0,
+                    adjacency_bonus: 0.0, // Reset adjacency_bonus here
                     total: 0.0,
                     value: 0,
                     image: null,
@@ -78,6 +78,7 @@ export const useOptimize = (): UseOptimizeReturn => {
         });
 
         if (!response.ok) {
+          console.log(tech)
           const errorData = await response.json();
           const errorMessage = errorData.message || "Failed to fetch data";
           throw new Error(errorMessage);
@@ -85,10 +86,11 @@ export const useOptimize = (): UseOptimizeReturn => {
 
         const data: ApiResponse = await response.json();
         setResult(data, tech);
-        setGrid(data.grid);
+        setGrid(data.grid); // Directly set the grid from the response
         console.log("Response from API:", data.grid);
       } catch (error) {
         console.error("Error during optimization:", error);
+        console.log(grid)
         setResult(null, tech);
         setShowErrorStore(true);
       } finally {

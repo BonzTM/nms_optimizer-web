@@ -1,11 +1,11 @@
 import "@testing-library/jest-dom";
 import { render, screen, fireEvent } from "@testing-library/react";
 import GridCell from "./GridCell"; // Correct import path
-import { useGridStore, GridStore, Cell, Grid } from "../../store/useGridStore";
+import { useGridStore, GridStore, Cell, Grid } from "../../store/GridStore";
 import { act } from "react-dom/test-utils";
 import { TooltipProvider } from "@radix-ui/react-tooltip";
 
-jest.mock("../../store/useGridStore");
+jest.mock("../../store/GridStore");
 jest.useFakeTimers(); // Enable fake timers
 
 describe("GridCell Component", () => {
@@ -56,7 +56,7 @@ describe("GridCell Component", () => {
     (useGridStore as jest.MockedFunction<typeof useGridStore>).mockReturnValue(mockGridStore);
     render(
       <TooltipProvider>
-        <GridCell rowIndex={0} columnIndex={0} cell={mockCell} grid={mockGrid} setShaking={mockSetShaking} />
+        <GridCell rowIndex={0} columnIndex={0} cell={mockCell} grid={mockGrid} setShaking={mockSetShaking} isSharedGrid={false} />
       </TooltipProvider>
     );
     expect(screen.getByRole("gridCell")).toBeInTheDocument();
@@ -87,7 +87,7 @@ describe("GridCell Component", () => {
     (useGridStore as jest.MockedFunction<typeof useGridStore>).mockReturnValue(mockGridStore);
     render(
       <TooltipProvider>
-        <GridCell rowIndex={0} columnIndex={0} cell={mockCell} grid={mockGrid} setShaking={mockSetShaking} />
+        <GridCell rowIndex={0} columnIndex={0} cell={mockCell} grid={mockGrid} setShaking={mockSetShaking} isSharedGrid={false}/>
       </TooltipProvider>
     );
     const gridCell = screen.getByRole("gridCell");
@@ -127,7 +127,7 @@ describe("GridCell Component", () => {
     const mockCellWithImage: Cell = { ...mockCell, image: "test.jpg" };
     render(
       <TooltipProvider>
-        <GridCell rowIndex={0} columnIndex={0} cell={mockCellWithImage} grid={mockGrid} setShaking={mockSetShaking} />
+        <GridCell rowIndex={0} columnIndex={0} cell={mockCellWithImage} grid={mockGrid} setShaking={mockSetShaking} isSharedGrid={false}/>
       </TooltipProvider>
     );
     expect(screen.getByRole("gridCell")).toHaveStyle({ backgroundImage: `url(/assets/img/test.jpg)` });

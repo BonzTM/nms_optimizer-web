@@ -1,21 +1,25 @@
 import React, { useState, useRef } from "react";
 import { Tooltip } from "@radix-ui/themes";
-import { Grid } from "../../store/useGridStore";
-import { useGridStore } from "../../store/useGridStore";
+import { Grid } from "../../store/GridStore";
+import { useGridStore } from "../../store/GridStore";
+import { useTechStore } from "../../store/TechStore";
 
 // TODO: Configure jest so this doesn't interfere in the future.
-// import "./GridCell.css"; 
+// import "./GridCell.css";
 
 interface GridCellProps {
   rowIndex: number;
   columnIndex: number;
   cell: {
-    label?: string;
+    label?: string; // Make label optional
     supercharged?: boolean;
     active?: boolean;
-    image: string | null | undefined;
+    tech?: string | null; // Make tech optional
+    adjacency_bonus?: number; // Make adjacency_bonus optional
+    image?: string | null | undefined; // Make image optional
   };
   grid: Grid;
+  isSharedGrid: boolean;
   setShaking: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
@@ -28,15 +32,10 @@ interface GridCellProps {
  * @param grid - The grid object, containing all cells and grid properties
  * @param setShaking - A function to set the shaking state of the grid
  */
-const GridCell: React.FC<GridCellProps> = ({
-  rowIndex,
-  columnIndex,
-  cell,
-  grid,
-  setShaking,
-}) => {
+const GridCell: React.FC<GridCellProps> = ({ rowIndex, columnIndex, cell, grid, setShaking, isSharedGrid }) => {
   const toggleCellActive = useGridStore((state) => state.toggleCellActive);
   const toggleCellSupercharged = useGridStore((state) => state.toggleCellSupercharged);
+  const getTechColor = useTechStore((state) => state.getTechColor); // Get getTechColor function
   const [longPressTriggered, setLongPressTriggered] = useState(false);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -46,6 +45,10 @@ const GridCell: React.FC<GridCellProps> = ({
    * @param event - The event object
    */
   const handleClick = (event: React.MouseEvent) => {
+    if (isSharedGrid) {
+      return;
+    }
+
     if (longPressTriggered) {
       event.stopPropagation(); // Prevents unintended click after long press
       return;
@@ -97,19 +100,31 @@ const GridCell: React.FC<GridCellProps> = ({
     event.preventDefault();
   };
 
-  const cellClassName = `gridCell gridCell--interactive shadow-md sm:border-2 border-1 sm:rounded-lg transition-all ${
-    cell.supercharged
-      ? "gridCell--supercharged shadow-lg"
-      : cell.active
-      ? "gridCell--active shadow-lg"
-      : "gridCell--inactive shadow-lg"
-  }`;
+  const techColor = getTechColor(cell.tech ?? "");
+  const cellClassName = `gridCell gridCell--interactive shadow-md sm:border-2 border-1 sm:rounded-lg transition-all
+  ${cell.supercharged ? "gridCell--supercharged shadow-lg" : ""}
+  ${cell.active ? "gridCell--active shadow-lg" : "gridCell--inactive shadow-lg"}
+  ${cell.adjacency_bonus === 0 && cell.image ? "gridCell--black" : techColor ? `gridCell--${techColor}` : ""}`.trim();
+
+  const getUpgradePriority = (label: string | undefined): number => {
+    if (!label) return 0;
+    switch (true) {
+      case label.toLowerCase().includes("sigma"):
+        return 1;
+      case label.toLowerCase().includes("tau"):
+        return 2;
+      case label.toLowerCase().includes("theta"):
+        return 3;
+      default:
+        return 0;
+    }
+  };
+
+  // Get the upgrade priority for the current cell
+  const upGradePriority = getUpgradePriority(cell.label);
 
   return (
-    <div
-      className="gridCell__container"
-      style={{ gridColumn: columnIndex + 1, gridRow: rowIndex + 1 }}
-    >
+    <div className="gridCell__container" style={{ gridColumn: columnIndex + 1, gridRow: rowIndex + 1 }}>
       {cell.label ? (
         <Tooltip content={cell.label}>
           <div
@@ -123,7 +138,13 @@ const GridCell: React.FC<GridCellProps> = ({
             style={{
               backgroundImage: cell.image ? `url(/assets/img/${cell.image})` : "none",
             }}
-          />
+          >
+            <div className="flex items-center justify-center w-full h-full">
+              <span className="text-2xl font-extrabold sm:text-3xl gridCell__label" style={{ color: "var(--gray-12)", fontFamily: "GeosansLight" }}>
+                {upGradePriority > 0 ? upGradePriority : null}
+              </span>
+            </div>
+          </div>
         </Tooltip>
       ) : (
         <div
